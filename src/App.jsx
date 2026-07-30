@@ -1,16 +1,16 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 
-// الموقع دلوقتي صفحة واحدة بس، لكن سايبينه فوق React Router عشان
-// لو حبيت تضيف صفحات تانية بعدين (زي صفحة تفاصيل طالب /student/:id)
-// يبقى سهل تضيفها هنا من غير ما تغيّر أي حاجة في الصفحة الحالية.
+// بنستخدم HashRouter (مش BrowserRouter) عشان الموقع يشتغل صح تحت أي مسار
+// فرعي (زي GitHub Pages: username.github.io/repo-name/) من غير أي إعدادات
+// إضافية على السيرفر. الرابط هيبقى فيه # بسيط (مثلاً .../#/) وده طبيعي.
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
