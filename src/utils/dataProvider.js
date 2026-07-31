@@ -14,60 +14,61 @@
  * من غير ما تلمس أي component ولا أي حاجة في الواجهة أو في محرك البحث.
  */
 
-const DATA_URL = `${import.meta.env.BASE_URL}data.json`;
-
 let cachedDataset = null;
 let inFlightPromise = null;
 
 /**
  * بيرجع الداتاسيت كامل: { columns, rows, nameColumnIndex, seatColumnIndex, totalRecords }
  * بيتعمل له cache عشان ميتحملش أكتر من مرة في نفس الجلسة.
+ *
+ * dataUrl لازم يكون رابط "كامل" (absolute) اتحسب في الصفحة الرئيسية،
+ * مش هنا، لأن الحساب النسبي (relative) بيختلف لو الكود شغال جوه Web Worker.
  */
-export async function loadDataset(onProgress) {
-  if (cachedDataset) return cachedDataset;
-  if (inFlightPromise) return inFlightPromise;
+export async function loadDataset(dataUrl, onProgress) {
+    if (cachedDataset) return cachedDataset;
+    if (inFlightPromise) return inFlightPromise;
 
-  inFlightPromise = (async () => {
-    const response = await fetch(DATA_URL);
+    inFlightPromise = (async () => {
+        const response = await fetch(dataUrl);
 
-    if (!response.ok) {
-      throw new Error(
-        `مش لاقي ملف البيانات (data.json). اتأكد إنك حطيت الملف في مجلد public وحولته بالسكريبت.`
-      );
-    }
+        if (!response.ok) {
+            throw new Error(
+                `مش لاقي ملف البيانات (data.json). اتأكد إنك حطيت الملف في مجلد public وحولته بالسكريبت.`,
+            );
+        }
 
-    // لو المتصفح بيدعم قراءة الاستريم بنعرض تقدم التحميل (مفيد مع ملفات كبيرة)
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && response.body && onProgress) {
-      const total = parseInt(contentLength, 10);
-      let loaded = 0;
-      const reader = response.body.getReader();
-      const chunks = [];
+        // لو المتصفح بيدعم قراءة الاستريم بنعرض تقدم التحميل (مفيد مع ملفات كبيرة)
+        const contentLength = response.headers.get('content-length');
+        if (contentLength && response.body && onProgress) {
+            const total = parseInt(contentLength, 10);
+            let loaded = 0;
+            const reader = response.body.getReader();
+            const chunks = [];
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        loaded += value.length;
-        onProgress(Math.min(99, Math.round((loaded / total) * 100)));
-      }
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+                loaded += value.length;
+                onProgress(Math.min(99, Math.round((loaded / total) * 100)));
+            }
 
-      const fullBuffer = new Uint8Array(loaded);
-      let position = 0;
-      for (const chunk of chunks) {
-        fullBuffer.set(chunk, position);
-        position += chunk.length;
-      }
+            const fullBuffer = new Uint8Array(loaded);
+            let position = 0;
+            for (const chunk of chunks) {
+                fullBuffer.set(chunk, position);
+                position += chunk.length;
+            }
 
-      const text = new TextDecoder('utf-8').decode(fullBuffer);
-      cachedDataset = JSON.parse(text);
-    } else {
-      cachedDataset = await response.json();
-    }
+            const text = new TextDecoder('utf-8').decode(fullBuffer);
+            cachedDataset = JSON.parse(text);
+        } else {
+            cachedDataset = await response.json();
+        }
 
-    onProgress?.(100);
-    return cachedDataset;
-  })();
+        onProgress?.(100);
+        return cachedDataset;
+    })();
 
-  return inFlightPromise;
+    return inFlightPromise;
 }
